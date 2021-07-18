@@ -1,0 +1,38 @@
+@charset 'utf-8';
+#testdiv { background-color: green; }
+@media all {
+    /* Hey this is a comment */
+    #testdiv { background-color: red; }
+}
+@page :right {
+  margin-left: 3cm;
+}
+/***//* .selector { font-family: sans-serif; } *\/*/
+.hello {color: #ffffff;
+
+
+}
+@-webkit-keyframes bounce {
+    from { left: 0px; /* evil */ }
+    to { left: 200px /* also evil */; }
+}
+* {
+    margin: 0 auto;
+}
+@font-face {
+  /* ok wow */
+  font-family: Foo, san-serif, serif;
+}
+* {
+margin: 0 auto;
+}
+@media (max-width: 500) {
+    @-webkit-keyframes bounce {
+        from { left: 0px; /* evil */ }
+        to { left: 200px /* also evil */; }
+    }
+    * {
+        ok: wow;
+    }
+}
+@import https://google.com
