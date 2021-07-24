@@ -18,14 +18,20 @@ if [ "$1" != "" ]; then
         echo "$1: No such file or directory"
         exit 2
     fi
+    shift
 else
     cssfile="$(random_css_file .)"
 fi
 
+if [ "$1" = "--ast" ]; then
+    print_ast=true
+    shift
+fi
+
 echo "$cssfile" >&2
 if $print_ast; then
-     ../tokcss.awk "$cssfile" | ../astcss.awk | ../ast2mincss.awk
-     echo ""
+     ../tokcss.awk "$cssfile" | ../astcss.awk | ../dedupastcss.awk
 else
-     ../tokcss.awk "$cssfile" | ../astcss.awk
+     ../tokcss.awk "$cssfile" | ../astcss.awk | ../dedupastcss.awk | ../ast2mincss.awk
+     echo ""
 fi
