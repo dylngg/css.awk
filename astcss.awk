@@ -647,7 +647,7 @@ END {
         # @import "blah.css"
         #                   ^ here
         if (context() == "at")
-            spool_emit_token("AT")
+            spool_emit_token("AT_REGULAR")
         else if (context() != "lspaces")
             spool_emit_token("WTF")
     }
