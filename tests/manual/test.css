@@ -27,6 +27,18 @@
 * {
 margin: 0 auto;
 }
+.child +   .sibling {
+    left: 0px;
+}
+.child~.sibling {
+    left: 0px;
+}
+.child>.granchild {
+    left: 0px;
+}
+.child2 >.granchild2 {
+    right: 0px;
+}
 @media (max-width: 500) {
     @-webkit-keyframes bounce {
         from { left: 0px; /* evil */ }

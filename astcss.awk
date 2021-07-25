@@ -590,6 +590,28 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     spool = spool $0
     next
 }
+/\+|~|>/ {
+    debug_line($0)
+    old_context = context()
+    pop_spacing_context_if_found($0)
+
+    # .selector1 + .selector2 {
+    #            ^ here
+    # or
+    # .selector1 ~ .selector2 {
+    #            ^ here
+    # or
+    # .selector1 > .selector2 {
+    #            ^ here
+    if (context() == "selector" && old_context == "lspaces") {
+        spool = spool_before(length(spool)-1)  # Remove prev leading whitesepace
+        push_context("lspaces")
+        # ~fallthrough~
+    }
+
+    spool = spool $0
+    next
+}
 /^$/ {
     debug_line($0)
     # /*
