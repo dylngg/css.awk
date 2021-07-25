@@ -269,10 +269,6 @@ function spool_last() {
 function spool_second_to_last() {
     return substr(spool, length(spool)-1, 1)
 }
-# spool_after Returns all characters after the given start (1-based index) of the spool
-function spool_after(start) {
-    return substr(spool, start, length(spool)-start)
-}
 # spool_before Returns all characters before the given end (1-based index) of the spool.
 function spool_before(end) {
     return substr(spool, 1, end)
@@ -328,9 +324,7 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
 
         # Slice out the comment from the spool since comments can appear
         # anywhere and we want to continue in the previous context
-        comment = spool_after(spool_start)
         spool = spool_before(spool_start)
-        emit_token("COMMENT", comment)
         spool_start = 1
         next
     }
