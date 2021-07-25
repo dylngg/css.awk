@@ -21,7 +21,8 @@
 }
 @font-face {
   /* ok wow */
-  font-family: Foo, san-serif, "serif", serif;
+  font-family: Foo,    san-serif, "serif", serif;
+  font: 500   Foo yellow;
 }
 * {
 margin: 0 auto;

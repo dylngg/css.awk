@@ -543,6 +543,14 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
         push_context("lspaces")
         next
     }
+    # .foo, .bar {
+    #     ^ here
+    # or
+    # rgba(0, 0, 0, 0)
+    #       ^ here
+    if (context() == "selector" || context() == "paren")
+        push_context("lspaces")
+        # ~fallthrough~
 
     spool = spool $0
     next
@@ -608,8 +616,9 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     # For leading whitespace lets ignore it
     if (context() == "global" || context() == "lspaces")
         next
-    if (context() == "selector" || context() == "at")
+    if (context() == "selector" || context() == "at" || context() == "value")
         push_context("lspaces")
+        # ~fallthrough~
 
     spool = spool $0
     next
