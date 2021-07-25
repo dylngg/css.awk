@@ -31,13 +31,14 @@ margin: 0 auto;
         from { left: 0px; /* evil */ }
         to { left: 200px /* also evil */; }
     }
+
+    .hello     .big
+    .world {
+        float: left;
+        float: right;
+    }
     * {
         ok: wow;
     }
-}
-.hello
-.world {
-    float: left;
-    float: right;
 }
 @import https://google.com

@@ -608,6 +608,8 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     # For leading whitespace lets ignore it
     if (context() == "global" || context() == "lspaces")
         next
+    if (context() == "selector" || context() == "at")
+        push_context("lspaces")
 
     spool = spool $0
     next
