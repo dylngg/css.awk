@@ -24,4 +24,5 @@ BEGIN {
 
         print tmpchars[i]
     }
+    print ""
 }

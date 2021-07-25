@@ -131,7 +131,7 @@ function tok_chars(input) {
         }
         folded = folded tmpchars[i] "\n"
     }
-    return folded
+    return folded "\n"
 }
 # retrieve_awkcode Returns the code of this awk file
 function retrieve_awkcode() {
@@ -280,7 +280,7 @@ function spool_before(end) {
 # pop_spacing_context_if_found Shared actions for non-whitespace based actions.
 function pop_spacing_context_if_found(with_char) {
     # at a non-whitespace character, pop spacing context
-    if (context() == "lspaces" || context() == "spaces")
+    if (context() == "lspaces")
         pop_context()
 }
 # resolve_rule_or_subselector_ambiguity_as_rule
@@ -601,9 +601,11 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     #           ^ here
     # .selector2 { ...
     # or alternatively, selector may be a @media part
-    else if (context() == "selector" || context() == "at" || context() == "rule_or_subselector")
+    else if (context() == "selector" || context() == "at" || context() == "rule_or_subselector") {
         # lets make it .selector1 .subselector2
         spool = spool " "
+        push_context("lspaces")
+    }
 
     next
 }
@@ -611,11 +613,6 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     debug_line($0)
     # For leading whitespace lets ignore it
     if (context() == "global" || context() == "lspaces")
-        next
-
-    # For spaces context (e.g spacing in "foo:   bar") we should skip all but
-    # the first whitespace.
-    if (context() == "spaces" && spool_second_to_last() == " ")
         next
 
     spool = spool $0
