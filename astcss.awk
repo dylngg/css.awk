@@ -664,6 +664,9 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     spool = spool $0
 }
 END {
+    debug_line($0)
+    pop_spacing_context_if_found($0)
+
     # Here is where we deal with the fact that we may have collected unparsable
     # garbage, or have to deal with a context that allows for a context to be
     # flushed without a ; at EOF. e.g. @import
@@ -672,7 +675,7 @@ END {
         #                   ^ here
         if (context() == "at")
             spool_emit_token("AT_REGULAR")
-        else if (context() != "lspaces")
+        else
             spool_emit_token("WTF")
     }
 }
