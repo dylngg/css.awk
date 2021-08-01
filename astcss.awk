@@ -175,7 +175,7 @@ function read(filepath) {
 # respawn Spawns a new awk program with the given input.
 function respawn(input) {
     # FIXME: This is a necessary evil because parsing @media or @namespace is
-    #        ambigious and requires backtracking...
+    #        ambiguous and requires backtracking...
 
     # Save our context stack
     context_stack_str = ""
@@ -219,7 +219,9 @@ function prev_context() {
 }
 # debug_line Prints out a useful line for debugging
 function debug_line(for_ch) {
-    return
+    if (DEBUG != "true")
+        return
+
     printf "%s\t[", for_ch
     for (ebp = 0; ebp <= esp; ebp++) {
         if (ebp != 0)
@@ -244,6 +246,10 @@ function change_context(new_context) {
 # in_blob_context Whether characters in this context should be ignored.
 function in_blob_context() {
     return context() == "comment" || context() == "quote"
+}
+# in_block_context Whether the current context is a block. e.g. in { ... }
+function in_block_context() {
+    return context() == "global" || context() == "at_nested"
 }
 # spool_emit_token Spits out a token with the current spool and resets it
 function spool_emit_token(token) {
