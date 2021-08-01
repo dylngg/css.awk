@@ -40,6 +40,9 @@ margin: 0 auto;
     right: 0px;
 }
 @media (max-width: 500) {
+    boom {
+        what: klambo;
+    }
     @-webkit-keyframes bounce {
         from { left: 0px; /* evil */ }
         to { left: 200px /* also evil */; }
@@ -53,5 +56,10 @@ margin: 0 auto;
     * {
         ok: wow;
     }
+    @-webkit-keyframes bounce {
+        from { left: 0px; /* evil */ }
+        to { left: 200px /* also evil */; }
+    }
 }
+foo {}
 @import https://google.com

@@ -41,8 +41,8 @@ BEGIN {
     #  |       ^                ^ ^
     #  |       spaces           spaces
     #  |                          lspaces
-    #  |  ^ ~~~~~~~~~~~~~~~~~~~ ^
-    #  |           at
+    #  |  ^ ~~~~~~~~~~~~~~~~~~~~~ ^
+    #  |        at
     #
     # 2|         .selector1 {
     #  |         ^ ~~~~~~ ^
@@ -188,7 +188,7 @@ function respawn(input) {
     # We avoid single quotes in this file to allow us to wrap this file in
     # single quotes, but the problem then is that we now have single quotes in
     # our code! Turns out awk has a \xASCII to save us: (27 is a single quote)
-    self = "gawk -v INDENTATION=" indentation " -v CONTEXT_STACK=" context_stack_str " -- " shell_quote(awkcode)
+    self = "gawk -v DEBUG=" DEBUG " -v INDENTATION=" indentation " -v CONTEXT_STACK=" context_stack_str " -- " shell_quote(awkcode)
     print input | self
     close(self)
 }
@@ -249,7 +249,7 @@ function in_blob_context() {
 }
 # in_block_context Whether the current context is a block. e.g. in { ... }
 function in_block_context() {
-    return context() == "global" || context() == "at_nested"
+    return context() == "global" || context() == "nested_statements"
 }
 # spool_emit_token Spits out a token with the current spool and resets it
 function spool_emit_token(token) {
@@ -285,24 +285,25 @@ function pop_spacing_context_if_found(with_char) {
     if (context() == "lspaces")
         pop_context()
 }
-# resolve_rule_or_subselector_ambiguity_as_rule
+# resolve_ruleset_or_nested_statements_ambiguity_as_rule
 #       Resolves the ambiguity inherit in @ tokens by marking the current
 #       context as a rule and reparsing the spool
-function resolve_rule_or_subselector_ambiguity_as_rule(char) {
-    change_context("selector")
+function resolve_ruleset_or_nested_statements_ambiguity_as_rule(char) {
+    pop_context()  # Remove ruleset_or_nested_statements
     push_context("rule")
     push_context("lspaces")
     indentation += 1
     respawn(tok_chars(spool char))
     spool = ""     # Just reparsed, no need to keep around spool
     pop_context()
-    push_context("lspaces")
 }
-# resolve_rule_or_subselector_ambiguity_as_selector Resolves the ambiguity
-#       inherit in @ tokens by marking the current context as a selector
-function resolve_rule_or_subselector_ambiguity_as_selector() {
+# resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements
+#       Resolves the ambiguity inherit in @ tokens by marking the current
+#       context as nested statements
+function resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements() {
     # Well this is much more straightforward than ...as_rule
-    change_context("selector")
+    pop_context()  # Remove ruleset_or_nested_statements
+    change_context("nested_statements")  # at -> nested_statements
 }
 /\/\*/ {
     debug_line($0)
@@ -348,15 +349,14 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     # or
     # @page { rule: value; ...
     # ^ here
-    if (context() == "global" || context() == "at")
+    if (in_block_context())
         push_context("at")
     # @supports { @media { ... } }
     #             ^ here
-    else if (context() == "rule_or_subselector") {
-        # Resolve ambiguity (see at case in /\{/); push rather than change
-        # since we pop both a presumed rule and selector context in /\}/
-        resolve_rule_or_subselector_ambiguity_as_selector()
+    else if (context() == "ruleset_or_nested_statements") {
+        resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements()
         push_context("at")
+        # ~fallthrough~
     }
 
     spool = spool $0
@@ -368,13 +368,16 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
 
     # I dont think its legal to just have blank { ... } curly braces, but
     # handle with grace
-    if (context() == "global")
+    if (in_block_context()) {
         push_context("selector")
+        # ~fallthrough~
+    }
     # @media { .selector { ...
     #                    ^ here
-    else if (context() == "rule_or_subselector") {
+    else if (context() == "ruleset_or_nested_statements") {
         # Resolve ambiguity (see at case below)
-        resolve_rule_or_subselector_ambiguity_as_selector()
+        resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements()
+        push_context("selector")
         # ~fallthrough~
     }
 
@@ -384,8 +387,6 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     if (context() == "selector") {
         spool_emit_token("SELECTOR")
         indentation += 1
-        if (prev_context() == "at")
-            push_context("selector")
 
         push_context("rule")
         push_context("lspaces")
@@ -393,6 +394,9 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     }
     # @media {
     #        ^ here (at)
+    # or
+    # @page {
+    #       ^ here (at)
     else if (context() == "at") {
         spool_emit_token("AT_NESTED")
         indentation += 1
@@ -405,11 +409,12 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
         #
         # This manifests itself when we encounter a ":" character following a
         # "{" character. If we assume the following context is a rule, then we
-        # mischaracterize "foo :bar {" because there are subselectors. If we
-        # assume the following context is a selector then we mischaracterize
-        # simple rule/values "foo: bar;". The hack is to defer the
-        # tokenization of rules and their values until we encounter a ";".
-        push_context("rule_or_subselector")
+        # mischaracterize "foo :bar {" because there are nested statements. If
+        # we assume the following context is a selector then we
+        # mischaracterize simple rule/values "foo: bar;". The hack is to defer
+        # the tokenization of rules and their values until we encounter a ";".
+        change_context("nested_statements")
+        push_context("ruleset_or_nested_statements")
         push_context("lspaces")
         next
     }
@@ -423,17 +428,16 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
 
     # @page { margin: left }
     #                      ^ here
-    if (context() == "rule_or_subselector") {
+    if (context() == "ruleset_or_nested_statements") {
         # Read "at" condition in { match first.
         #
-        # If we reach } in a rule_or_subselector context that means that we
+        # If we reach } in a ruleset_or_nested_statements context that means that we
         # did not encounter a selector {, so we assume that either the
         # values inside {} are empty, or there was a single rule without a ;
         # terminator (since that is _technically_ valid). So reparse that
         # spool and resolve the ambiguity as we do when we encounter ; in a
-        # rule_or_subselector context
-        resolve_rule_or_subselector_ambiguity_as_rule($0)
-        pop_context()  # Remove lspaces context
+        # ruleset_or_nested_statements context
+        resolve_ruleset_or_nested_statements_ambiguity_as_rule($0)
         indentation -= 1
         pop_context()  # Remove rule to get to at context
         # ~fallthrough~
@@ -463,14 +467,11 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     # @media { ... }
     #              ^ here
     # or
-    # @media { .selector { } }
+    # @page { rule: value; ... }
     #                        ^ here
-    if (context() == "selector" || context() == "at") {
+    if (context() == "selector" || context() == "nested_statements") {
         indentation -= 1
-        pop_context()  # Remove the selector or at context
-        if (context() == "at")
-            pop_context()
-
+        pop_context()  # Remove the selector or nested_statements context
         push_context("lspaces")
         next
     }
@@ -514,11 +515,11 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     }
     # @page { rule: value; }
     #                    ^ here
-    else if (context() == "rule_or_subselector") {
+    else if (context() == "ruleset_or_nested_statements") {
         # Resolve ambiguity, we now know we are in a rule context (see at case
         # in /\{/). Because we just consumed a bunch of input without parsing
         # it, we need to reparse that data.
-        resolve_rule_or_subselector_ambiguity_as_rule($0)
+        resolve_ruleset_or_nested_statements_ambiguity_as_rule($0)
         indentation -= 1
         next
     }
@@ -631,7 +632,7 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
     #           ^ here
     # .selector2 { ...
     # or alternatively, selector may be a @media part
-    else if (context() == "selector" || context() == "at" || context() == "rule_or_subselector") {
+    else if (context() == "selector" || context() == "at" || context() == "ruleset_or_nested_statements") {
         # lets make it .selector1 .subselector2
         spool = spool " "
         push_context("lspaces")
@@ -642,7 +643,7 @@ function resolve_rule_or_subselector_ambiguity_as_selector() {
 / |\t/ {
     debug_line($0)
     # For leading whitespace lets ignore it
-    if (context() == "global" || context() == "lspaces")
+    if (in_block_context() || context() == "lspaces")
         next
     if (context() == "selector" || context() == "at" || context() == "value")
         push_context("lspaces")
