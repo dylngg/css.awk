@@ -179,10 +179,6 @@ function quoted_value_is_identifier(value) {
 
     next
 }
-/^\t*COMMENT.*/ {
-    print $0
-    next
-}
 /^\t*WTF.*/ {
     print $0
 }

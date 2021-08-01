@@ -58,7 +58,7 @@ margin: 0 auto;
     }
     @-webkit-keyframes bounce {
         from { left: 0px; /* evil */ }
-        to { left: 200px /* also evil */; }
+        to { left: 200px /* also evil */;;;; }
     }
 }
 foo {}

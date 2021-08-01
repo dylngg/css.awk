@@ -533,6 +533,11 @@ function resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements() {
         push_context("lspaces")
         next
     }
+    # { rule: value;;; }
+    #               ^ here
+    else if (context() == "rule")
+        # Skip trailing ';'
+        next
 
     spool = spool $0
     next
@@ -570,10 +575,14 @@ function resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements() {
     #        ^ here      ^ or here
     # rule: function(value1, value2, value3)
     #               ^ or here              ^ or here
-    if (context() == "paren" && $0 == ")")
+    if (context() == "paren" && $0 == ")") {
         pop_context()
-    else if (!in_blob_context() && $0 == "(")
+        push_context("lspaces")
+    }
+    else if (!in_blob_context() && $0 == "(") {
         push_context("paren")
+        push_context("lspaces")
+    }
 
     spool = spool $0
     next
@@ -584,15 +593,19 @@ function resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements() {
 
     # rule: value, "value2"
     #                     ^ here
-    if (context() == "quote")
+    if (context() == "quote") {
         pop_context()
+        push_context("lspaces")
+    }
 
     # rule: "value"
     #       ^ possibly here
     # *technically blob contexts includes quote; but already checked for quote
     # context above, so all good
-    else if (!in_blob_context())
+    else if (!in_blob_context()) {
         push_context("quote")
+        push_context("lspaces")
+    }
 
     spool = spool $0
     next
