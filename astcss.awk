@@ -536,7 +536,7 @@ function resolve_ruleset_or_nested_statements_ambiguity_as_nested_statements() {
     # { rule: value;;; }
     #               ^ here
     else if (context() == "rule")
-        # Skip trailing ';'
+        # Skip trailing ;
         next
 
     spool = spool $0
